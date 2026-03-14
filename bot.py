@@ -1,13 +1,21 @@
 import requests
-import os
 
 TOKEN = "8632657146:AAH1eIOFEEk7XLctRU_H7mJ3Of2exLoM_Jg"
 CHAT_ID = "5198714684"
 URL = "https://api.hsc.gov.ua/api/queue"
-TELEGRAM_API = f"https://api.telegram.org/bot{TOKEN}"
 
-# Перевірка черги ТСЦ
+# Файл для збереження останнього статусу
+LAST_STATUS_FILE = "last_status.txt"
+
+def send(msg):
+    """Надсилає повідомлення в Telegram"""
+    requests.get(
+        f"https://api.telegram.org/bot{TOKEN}/sendMessage",
+        params={"chat_id": CHAT_ID, "text": msg}
+    )
+
 def check_queue():
+    """Перевіряє ТСЦ і повертає повідомлення"""
     try:
         r = requests.get(URL)
         if "free" in r.text.lower():
@@ -17,31 +25,23 @@ def check_queue():
     except Exception as e:
         return f"⚠️ Помилка: {e}"
 
-# Надсилання повідомлення у Telegram
-def send(msg):
-    requests.get(f"{TELEGRAM_API}/sendMessage", params={"chat_id": CHAT_ID, "text": msg})
-
-# Обробка команд від користувача через getUpdates
-def handle_commands():
-    try:
-        r = requests.get(f"{TELEGRAM_API}/getUpdates", params={"offset": -1})
-        updates = r.json().get("result", [])
-        if not updates:
-            return
-        last_msg = updates[-1]["message"]
-        text = last_msg.get("text", "").lower()
-        if text == "/info":
-            send("ℹ️ Це бот для перевірки ТСЦ 6143 (Кременець) — категорія A.")
-        elif text == "/status":
-            send(check_queue())
-    except Exception as e:
-        print(f"Помилка команд: {e}")
-
-if __name__ == "__main__":
-    # Надсилаємо повідомлення лише якщо з’явився вільний запис
+def main():
     msg = check_queue()
-    if "🔥" in msg:
+    
+    # Читаємо останній статус
+    try:
+        with open(LAST_STATUS_FILE, "r", encoding="utf-8") as f:
+            last_msg = f.read().strip()
+    except FileNotFoundError:
+        last_msg = ""
+
+    # Надсилаємо повідомлення лише якщо змінився статус
+    if msg != last_msg and "🔥" in msg:
         send(msg)
     
-    # Обробляємо команди користувача
-    handle_commands()
+    # Оновлюємо файл останнього статусу
+    with open(LAST_STATUS_FILE, "w", encoding="utf-8") as f:
+        f.write(msg)
+
+if __name__ == "__main__":
+    main()
