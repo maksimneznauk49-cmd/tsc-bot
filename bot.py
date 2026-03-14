@@ -3,8 +3,8 @@ import os
 from telegram import Bot, Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CommandHandler, CallbackQueryHandler, Updater
 
-TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
-CHAT_ID = os.environ["CHAT_ID"]
+TOKEN = os.environ["8632657146:AAH1eIOFEEk7XLctRU_H7mJ3Of2exLoM_Jg"]
+CHAT_ID = os.environ["5198714684"]
 
 URL = "https://api.hsc.gov.ua/api/queue"
 
