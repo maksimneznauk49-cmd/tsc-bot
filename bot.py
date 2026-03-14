@@ -1,9 +1,8 @@
 import requests
-import os
 from telegram import Bot, Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CommandHandler, CallbackQueryHandler, Updater
 
-# Вставлено твої секрети прямо в код
+# Твій токен і ID чату
 TOKEN = "8632657146:AAH1eIOFEEk7XLctRU_H7mJ3Of2exLoM_Jg"
 CHAT_ID = "5198714684"
 
@@ -16,12 +15,12 @@ def check_queue():
         if "free" in r.text.lower():
             return "🔥 Зʼявився вільний запис у ТСЦ 6143!"
         else:
-            return None  # не надсилаємо, якщо запису немає
+            return "ℹ️ Запису наразі немає."
     except Exception as e:
         return f"⚠️ Помилка: {e}"
 
 def start(update: Update, context):
-    msg = check_queue() or "ℹ️ Запису наразі немає."
+    msg = check_queue()
     keyboard = [
         [InlineKeyboardButton("Інфо", callback_data='info'),
          InlineKeyboardButton("Статус", callback_data='status')]
@@ -35,19 +34,19 @@ def button(update: Update, context):
     if query.data == 'info':
         query.edit_message_text("ℹ️ Це бот для перевірки ТСЦ 6143 (Кременець) — категорія A.")
     elif query.data == 'status':
-        msg = check_queue() or "ℹ️ Запису наразі немає."
+        msg = check_queue()
         query.edit_message_text(msg)
 
 def run_once():
     msg = check_queue()
-    if msg:
+    if "🔥" in msg:  # надсилаємо повідомлення лише якщо вільний запис є
         bot.send_message(chat_id=CHAT_ID, text=msg)
 
 if __name__ == "__main__":
-    # GitHub Actions запускає одноразово
+    # Одноразова перевірка для GitHub Actions
     run_once()
-    
-    # Для локального запуску можна розкоментувати
+
+    # Для локального запуску та кнопок можна розкоментувати:
     # updater = Updater(TOKEN, use_context=True)
     # dp = updater.dispatcher
     # dp.add_handler(CommandHandler("start", start))
