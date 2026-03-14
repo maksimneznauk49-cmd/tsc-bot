@@ -1,69 +1,55 @@
 import requests
-import threading
-import time
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Updater, CommandHandler, CallbackQueryHandler
+import os
+from telegram import Bot, Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import CommandHandler, CallbackQueryHandler, Updater
 
-TOKEN = "8632657146:AAH1eIOFEEk7XLctRU_H7mJ3Of2exLoM_Jg"
-CHAT_ID = "5198714684"
+TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
+CHAT_ID = os.environ["CHAT_ID"]
+
 URL = "https://api.hsc.gov.ua/api/queue"
 
-def send(msg):
-    """Відправка повідомлення в Telegram"""
-    requests.get(
-        f"https://api.telegram.org/bot{TOKEN}/sendMessage",
-        params={"chat_id": CHAT_ID, "text": msg}
-    )
+bot = Bot(TOKEN)
 
-# ----------------- Кнопки -----------------
+def check_queue():
+    try:
+        r = requests.get(URL)
+        if "free" in r.text.lower():
+            return "🔥 Зʼявився вільний запис у ТСЦ 6143!"
+        else:
+            return "ℹ️ Запису наразі немає."
+    except Exception as e:
+        return f"⚠️ Помилка: {e}"
+
 def start(update: Update, context):
+    msg = check_queue()
     keyboard = [
-        [InlineKeyboardButton("ℹ️ Інфо", callback_data='info')],
-        [InlineKeyboardButton("📊 Статус", callback_data='status')]
+        [InlineKeyboardButton("Інфо", callback_data='info'),
+         InlineKeyboardButton("Статус", callback_data='status')]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    update.message.reply_text("Привіт! Оберіть дію:", reply_markup=reply_markup)
+    update.message.reply_text(msg, reply_markup=reply_markup)
 
 def button(update: Update, context):
     query = update.callback_query
     query.answer()
-
     if query.data == 'info':
-        query.edit_message_text("🚀 Бот перевіряє вільні записи на ТСЦ №6143 (Кременець).")
+        query.edit_message_text("ℹ️ Це бот для перевірки ТСЦ 6143 (Кременець) — категорія A.")
     elif query.data == 'status':
-        try:
-            r = requests.get(URL)
-            if "free" in r.text.lower():
-                msg = "🔥 Є вільний запис!"
-            else:
-                msg = "❌ Вільного запису немає"
-        except:
-            msg = "⚠️ Не вдалося перевірити статус"
+        msg = check_queue()
         query.edit_message_text(msg)
 
-# ----------------- Фоновий потік -----------------
-def auto_check():
-    """Автоматична перевірка сайту кожні 5 хвилин"""
-    while True:
-        try:
-            r = requests.get(URL)
-            if "free" in r.text.lower():
-                send("🔥 Зʼявився вільний запис у ТСЦ 6143!")
-        except Exception as e:
-            print(e)
-        time.sleep(300)  # перевірка кожні 5 хвилин
-
-# ----------------- Основна функція -----------------
-def main():
-    updater = Updater(TOKEN)
-    updater.dispatcher.add_handler(CommandHandler('start', start))
-    updater.dispatcher.add_handler(CallbackQueryHandler(button))
-
-    # Запуск фонової перевірки в окремому потоці
-    threading.Thread(target=auto_check, daemon=True).start()
-
-    updater.start_polling()
-    updater.idle()
+def run_once():
+    # Надсилаємо оновлення в Telegram канал/чат без кнопок
+    bot.send_message(chat_id=CHAT_ID, text=check_queue())
 
 if __name__ == "__main__":
-    main()
+    # Для GitHub Actions — робимо одноразову перевірку
+    run_once()
+    
+    # Для локального запуску або сервера можна розкоментувати:
+    # updater = Updater(TOKEN, use_context=True)
+    # dp = updater.dispatcher
+    # dp.add_handler(CommandHandler("start", start))
+    # dp.add_handler(CallbackQueryHandler(button))
+    # updater.start_polling()
+    # updater.idle()
