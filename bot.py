@@ -1,13 +1,12 @@
 import requests
 import os
-import time
 
 TOKEN = "8632657146:AAH1eIOFEEk7XLctRU_H7mJ3Of2exLoM_Jg"
 CHAT_ID = "5198714684"
 URL = "https://api.hsc.gov.ua/api/queue"
 TELEGRAM_API = f"https://api.telegram.org/bot{TOKEN}"
 
-# Функція перевірки черги
+# Перевірка черги ТСЦ
 def check_queue():
     try:
         r = requests.get(URL)
@@ -18,11 +17,11 @@ def check_queue():
     except Exception as e:
         return f"⚠️ Помилка: {e}"
 
-# Надсилання повідомлення
+# Надсилання повідомлення у Telegram
 def send(msg):
     requests.get(f"{TELEGRAM_API}/sendMessage", params={"chat_id": CHAT_ID, "text": msg})
 
-# Обробка команд від користувача
+# Обробка команд від користувача через getUpdates
 def handle_commands():
     try:
         r = requests.get(f"{TELEGRAM_API}/getUpdates", params={"offset": -1})
@@ -39,10 +38,10 @@ def handle_commands():
         print(f"Помилка команд: {e}")
 
 if __name__ == "__main__":
-    # Перевірка вільних записів
+    # Надсилаємо повідомлення лише якщо з’явився вільний запис
     msg = check_queue()
     if "🔥" in msg:
         send(msg)
     
-    # Перевірка команд від користувача
+    # Обробляємо команди користувача
     handle_commands()
